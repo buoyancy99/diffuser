@@ -11,11 +11,11 @@ import matplotlib.pyplot as plt
 
 
 class Parser(utils.Parser):
-    dataset: str = "maze2d-large-v1"
+    dataset: str = "maze2d-medium-v1"
     config: str = "config.maze2d"
 
 
-seed = 7
+seed = 4
 save_visualization = False
 
 # ---------------------------------- setup ----------------------------------#
@@ -65,10 +65,15 @@ for t in range(env.max_episode_steps):
     if t == 0:
         cond[0] = observation
 
-        action, samples, hist = policy(cond, batch_size=args.batch_size, return_diffusion=save_visualization)
+        out = policy(cond, batch_size=args.batch_size, return_diffusion=save_visualization)
+        action, samples = out[:2]
+        if save_visualization:
+            hist = samples.observations[-1]
         actions = samples.actions[0]
         sequence = samples.observations[0]
 
+        plt.scatter(sequence[:, 0], sequence[:, 1])
+        plt.savefig(join(args.savepath, f"{args.dataset}_seed_{seed}_plot.png"))
         if save_visualization:
             torch.save(
                 {
@@ -80,10 +85,8 @@ for t in range(env.max_episode_steps):
                 join(args.savepath, f"{args.dataset}_seed_{seed}_plot_data.pt"),
             )
             print("seed", seed, "start", observation, "goal", target)
-            traj = hist.observations[0, -1]
-            plt.scatter(traj[:, 0], traj[:, 1])
-            plt.savefig(join(args.savepath, f"{args.dataset}_seed_{seed}_plot.png"))
             assert False
+
     # pdb.set_trace()
 
     # ####
@@ -111,12 +114,12 @@ for t in range(env.max_episode_steps):
     next_observation, reward, terminal, _ = env.step(action)
     total_reward += reward
     score = env.get_normalized_score(total_reward)
-    print(f"t: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | score: {score:.4f} | " f"{action}")
+    # print(f"t: {t} | r: {reward:.2f} |  R: {total_reward:.2f} | score: {score:.4f} | " f"{action}")
 
     if "maze2d" in args.dataset:
         xy = next_observation[:2]
         goal = env.unwrapped._target
-        print(f"maze | pos: {xy} | goal: {goal}")
+        # print(f"maze | pos: {xy} | goal: {goal}")
 
     ## update rollout observations
     rollout.append(next_observation.copy())
